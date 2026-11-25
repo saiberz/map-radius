@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Map Radius</title>
+  <meta name="description" content="Pick a center, set a radius, and see which points fall inside it." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📍</text></svg>" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="map" aria-label="Map"></div>
+
+  <aside id="panel" class="panel">
+    <header class="panel-header">
+      <h1>Map Radius</h1>
+      <button id="collapse" class="icon-btn" type="button" aria-expanded="true" aria-controls="panel-body" title="Collapse panel">▾</button>
+    </header>
+
+    <div id="panel-body" class="panel-body">
+      <div class="modes" role="tablist" aria-label="Click mode">
+        <button type="button" role="tab" class="mode-btn" data-mode="center" aria-selected="true">🎯 Set center</button>
+        <button type="button" role="tab" class="mode-btn" data-mode="points" aria-selected="false">➕ Add points</button>
+      </div>
+      <p id="hint" class="hint"></p>
+
+      <form id="search" class="search" autocomplete="off">
+        <input id="search-input" type="search" placeholder="Search an address or place…" aria-label="Search an address or place" />
+        <button type="submit">Go</button>
+      </form>
+      <p id="search-status" class="status" role="status"></p>
+
+      <section class="radius">
+        <label for="radius-range">Radius</label>
+        <div class="radius-row">
+          <input id="radius-range" type="range" min="0.1" max="100" step="0.1" />
+          <input id="radius-number" type="number" min="0.1" max="20000" step="0.1" aria-label="Radius value" />
+          <div class="units" role="group" aria-label="Unit">
+            <button type="button" class="unit-btn" data-unit="km">km</button>
+            <button type="button" class="unit-btn" data-unit="mi">mi</button>
+          </div>
+        </div>
+        <p id="center-info" class="status"></p>
+      </section>
+
+      <section class="points">
+        <div class="points-header">
+          <h2>Points</h2>
+          <span id="summary" class="summary"></span>
+        </div>
+        <ul id="point-list" class="point-list"></ul>
+        <p id="empty" class="status">No points yet. Switch to “Add points” and click the map.</p>
+        <div class="actions">
+          <button id="fit" type="button">Zoom to all</button>
+          <button id="clear" type="button" class="danger">Clear all</button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="app.js"></script>
+</body>
+</html>
