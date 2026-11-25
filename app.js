@@ -237,7 +237,8 @@
     summary: $("summary"),
     search: $("search"),
     searchInput: $("search-input"),
-    searchStatus: $("search-status"),
+    locate: $("locate"),
+    status: $("status"),
     fit: $("fit"),
     clear: $("clear"),
   };
@@ -306,6 +307,10 @@
       : state.center
         ? `${inside} of ${state.points.length} inside`
         : `${state.points.length} point${state.points.length === 1 ? "" : "s"}`;
+  }
+
+  function setStatus(text) {
+    ui.status.textContent = text;
   }
 
   function fitAll() {
@@ -377,14 +382,14 @@
     e.preventDefault();
     const q = ui.searchInput.value.trim();
     if (!q) return;
-    ui.searchStatus.textContent = "Searching…";
+    setStatus("Searching…");
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
       const res = await fetch(url, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const [hit] = await res.json();
       if (!hit) {
-        ui.searchStatus.textContent = `No results for “${q}”.`;
+        setStatus(`No results for “${q}”.`);
         return;
       }
       const latlng = L.latLng(Number(hit.lat), Number(hit.lon));
@@ -392,18 +397,71 @@
       if (mode === "center") {
         setCenter(latlng, { fit: true });
         setMode("points");
-        ui.searchStatus.textContent = `Center set to ${label}.`;
+        setStatus(`Center set to ${label}.`);
       } else {
         addPoint(latlng, label);
         fitAll();
-        ui.searchStatus.textContent = `Added “${label}”.`;
+        setStatus(`Added “${label}”.`);
       }
       ui.searchInput.value = "";
     } catch (err) {
-      ui.searchStatus.textContent = "Search failed. Check your connection and try again.";
+      setStatus("Search failed. Check your connection and try again.");
       console.error(err);
     }
   });
+
+  // ---------- Location ----------
+
+  // Precise location: the browser asks the user for permission.
+  function locateMe() {
+    if (!navigator.geolocation) {
+      setStatus("Your browser doesn't support location. Click the map or search an address.");
+      return;
+    }
+    setStatus("Waiting for location permission…");
+    ui.locate.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        ui.locate.disabled = false;
+        setCenter(L.latLng(pos.coords.latitude, pos.coords.longitude), { fit: true });
+        setMode("points");
+        setStatus(`Center set to your location (±${Math.round(pos.coords.accuracy)} m).`);
+      },
+      (err) => {
+        ui.locate.disabled = false;
+        setStatus(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied. Click the map or search an address instead."
+            : "Couldn't get your location. Click the map or search an address instead."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  }
+
+  // Approximate (city-level) guess from the IP address — no permission prompt.
+  // Tries a couple of free, key-less services in order.
+  async function guessFromIp() {
+    const services = [
+      ["https://get.geojs.io/v1/ip/geo.json", (d) => [d.latitude, d.longitude, d.city]],
+      ["https://ipapi.co/json/", (d) => [d.latitude, d.longitude, d.city]],
+    ];
+    for (const [url, parse] of services) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const [lat, lng, city] = parse(await res.json());
+        if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) && (Number(lat) || Number(lng))) {
+          return { latlng: L.latLng(Number(lat), Number(lng)), city };
+        }
+      } catch {
+        // try the next service
+      }
+    }
+    return null;
+  }
+
+  ui.locate.addEventListener("click", locateMe);
 
   // ---------- Init ----------
 
@@ -414,4 +472,21 @@
   renderList();
   setMode(mode);
   fitAll();
+
+  // First visit: default the center to an approximate IP-based location.
+  if (!state.center) {
+    setStatus("Finding your approximate area…");
+    guessFromIp().then((guess) => {
+      if (state.center) return; // the user already picked a center meanwhile
+      if (!guess) {
+        setStatus("");
+        return;
+      }
+      setCenter(guess.latlng, { fit: true });
+      setStatus(
+        `Approximate center${guess.city ? ` near ${guess.city}` : ""} (from your IP). ` +
+          "Use 📍 for your precise location, or click the map."
+      );
+    });
+  }
 })();

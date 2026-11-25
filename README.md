@@ -2,6 +2,8 @@
 
 Pick a center on the map, set a radius, and add points to see which ones are inside it.
 
+- **Default center:** on your first visit, the app guesses your approximate (city-level) area from your IP address, with no permission prompt. It uses [GeoJS](https://www.geojs.io), with [ipapi.co](https://ipapi.co) as a fallback.
+- **Use my precise location:** the 📍 button asks the browser for location permission. If you say no, nothing breaks.
 - **Set center:** click the map or search an address. Drag the blue marker to move it.
 - **Radius:** use the slider or type a value, in km or miles. The circle updates live.
 - **Add points:** click the map or search an address.
